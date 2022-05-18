@@ -16,14 +16,14 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionDisconnect->setEnabled(false);
     connectDialog = new ConnectDialog();
 
-    connect(ui->actionConnect, SIGNAL(triggered()), connectDialog, SLOT(show()));
-    connect(connectDialog, SIGNAL(accepted()), this, SLOT(connectPort()));
-    connect(ui->actionDisconnect, SIGNAL(triggered()), this, SLOT(disconnectPort()));
-    connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(onExit()));
+    connect(ui->actionConnect, &QAction::triggered, connectDialog, &ConnectDialog::show);
+    connect(connectDialog, &QDialog::accepted, this, &MainWindow::connectPort);
+    connect(ui->actionDisconnect, &QAction::triggered, this, &MainWindow::disconnectPort);
+    connect(ui->actionExit, &QAction::triggered, this, &MainWindow::onExit);
     connect(serialPort, &QSerialPort::errorOccurred, this, &MainWindow::handleError);
     connect(ui->btnValidate, &QPushButton::clicked, this, &MainWindow::okPosition);
     connect(ui->btnStop, &QPushButton::clicked, this, &MainWindow::stopPosition);
-    connect(serialPort,SIGNAL(readyRead()),this,SLOT(serialReceived()));
+    connect(serialPort,&QSerialPort::readyRead,this,&MainWindow::serialReceived);
 
 }
 
@@ -51,7 +51,10 @@ void MainWindow::connectPort()
     serialPort->setParity(p.parity);
     serialPort->setStopBits(p.stopBits);
     serialPort->setFlowControl(p.flowControl);
-    if(serialPort->open(QIODevice::ReadWrite)) {
+    serialPort->open(QIODevice::ReadWrite);
+    if(serialPort->isOpen()) {
+
+        serialPort->setDataTerminalReady(false);
         ui->actionConnect->setEnabled(false);
         ui->actionDisconnect->setEnabled(true);
         QMessageBox info;
@@ -64,6 +67,7 @@ void MainWindow::connectPort()
     else
     {
         QMessageBox::critical(this, tr("Error"), serialPort->errorString());
+        this->setWindowTitle("IHM IPS");
     }
 }
 
@@ -97,22 +101,28 @@ void MainWindow::handleError(QSerialPort::SerialPortError error)
 
 void MainWindow::okPosition()
 {
-    QByteArray ok = ui->inputPosition->text().toLocal8Bit();
-    serialPort->write(ok);
-    serialPort->readAll();
+    if(serialPort->isOpen()){
+        QString okPosition = "ok:"+ui->positionOrdered->text();
+        QByteArray ok = okPosition.toUtf8();
+        serialPort->write(ok);
+    }
 }
 
 void MainWindow::stopPosition()
 {
-    QByteArray stop = ui->positionOrdered->text().toLocal8Bit();
-    serialPort->write(stop);
+    if(serialPort->isOpen()){
+        QString stopPosition = "stop:"+ui->positionOrdered->text();
+        QByteArray stop = stopPosition.toUtf8();
+        serialPort->write(stop);
+    }
 }
-
 void MainWindow::serialReceived()
 {
-    QByteArray ba;
-    ba=serialPort->readAll();
-    qInfo()<<ba;
+    serialPort->bytesAvailable();
+    QByteArray ba=serialPort->readAll();
+    QString text = QString(ba);
+    QStringList list = text.split(":");
+    qInfo() << ba;
 }
 MainWindow::~MainWindow()
 {

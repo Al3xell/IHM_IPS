@@ -90,7 +90,7 @@ void ConnectDialog::fillPortsParameters()
 
     ui->stopBitsBox->addItem(QStringLiteral("1"), QSerialPort::OneStop);
 #ifdef Q_OS_WIN
-    m_ui->stopBitsBox->addItem(tr("1.5"), QSerialPort::OneAndHalfStop);
+    ui->stopBitsBox->addItem(tr("1.5"), QSerialPort::OneAndHalfStop);
 #endif
     ui->stopBitsBox->addItem(QStringLiteral("2"), QSerialPort::TwoStop);
 
@@ -125,7 +125,7 @@ void ConnectDialog::fillPortsInfo()
 
 void ConnectDialog::updateSettings()
 {
-    currentSettings.name = ui->serialPortInfoListBox->currentText();
+    currentSettings.name = "/dev/"+ui->serialPortInfoListBox->currentText();
 
     currentSettings.baudRate = static_cast<QSerialPort::BaudRate>(
                            ui->baudRateBox->itemData(ui->baudRateBox->currentIndex()).toInt());
