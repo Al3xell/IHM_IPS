@@ -1,6 +1,7 @@
 #include <QMessageBox>
 #include <QSerialPort>
 #include <QDebug>
+#include <string>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -102,16 +103,31 @@ void MainWindow::handleError(QSerialPort::SerialPortError error)
 void MainWindow::okPosition()
 {
     if(serialPort->isOpen()){
-        QString okPosition = "ok:"+ui->positionOrdered->text();
-        QByteArray ok = okPosition.toUtf8();
-        serialPort->write(ok);
+        if(ui->inputPosition->text() < 170) {
+            ui->positionOrdered->setText(ui->inputPosition->text());
+            QString okPosition = ui->positionOrdered->text();
+            if(okPosition.length()<3) {
+                for (int var = okPosition.length(); var < 3; ++var) {
+                    okPosition.append(".");
+                }
+            }
+            QByteArray ok = okPosition.toUtf8();
+            serialPort->write(ok);
+        }
     }
 }
 
 void MainWindow::stopPosition()
 {
     if(serialPort->isOpen()){
-        QString stopPosition = "stop:"+ui->positionOrdered->text();
+
+        ui->positionOrdered->setText(ui->actualPosition->text());
+        QString stopPosition = ui->actualPosition->text();
+        if(stopPosition.length()<3) {
+            for (int var = stopPosition.length(); var < 3; ++var) {
+                stopPosition.append(".");
+            }
+        }
         QByteArray stop = stopPosition.toUtf8();
         serialPort->write(stop);
     }
@@ -119,10 +135,26 @@ void MainWindow::stopPosition()
 void MainWindow::serialReceived()
 {
     serialPort->bytesAvailable();
-    QByteArray ba=serialPort->readAll();
+    QByteArray ba=serialPort->readLine();
     QString text = QString(ba);
     QStringList list = text.split(":");
-    qInfo() << ba;
+    qInfo() << list;
+    if(list.length() >= 2) {
+
+        if(list[0] == "v") {
+            ui->valueVoltage->setText(list[1]);
+        }
+        else if(list[0] == "c") {
+            ui->valueCurrent->setText(list[1]);
+        }
+        else if (list[0] == "p") {
+            ui->actualPosition->setText(list[1]);
+        }
+        else if (list[0] == "h"){
+            ui->valueHeatingPower->setText(list[1]);
+        }
+        // qInfo() << text;
+    }
 }
 MainWindow::~MainWindow()
 {
